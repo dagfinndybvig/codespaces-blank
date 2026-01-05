@@ -138,10 +138,17 @@ class IntcodeVM {
         console.log(`First instruction at PC=${this.pc}: ${this.memory[this.pc]}`);
         
         let instructionCount = 0;
-        const maxInstructions = 10000000; // Very high limit for compiler stages
+        const maxInstructions = 50000000; // Very high limit for compiler stages
+        let lastProgressReport = 0;
         
         try {
             while (this.running && instructionCount < maxInstructions) {
+                // Progress reporting every million instructions
+                if (instructionCount - lastProgressReport >= 1000000) {
+                    console.log(`Progress: ${instructionCount / 1000000}M instructions, output: ${this.outputBuffer.length} bytes`);
+                    lastProgressReport = instructionCount;
+                }
+                
                 if (instructionCount < 10) {  // Only trace first 10 instructions
                     const inst = this.memory[this.pc];
                     const opcode = inst & 0x7;
@@ -153,9 +160,11 @@ class IntcodeVM {
             }
             
             if (instructionCount >= maxInstructions) {
-                console.error(`=== INFINITE LOOP DETECTED ===`);
-                console.error(`Last 5 PCs: PC=${this.pc}, A=${this.a}, B=${this.b}, SP=${this.sp}`);
-                console.error(`Memory at PC: [${this.pc-2}]=${this.memory[this.pc-2]}, [${this.pc-1}]=${this.memory[this.pc-1]}, [${this.pc}]=${this.memory[this.pc]}, [${this.pc+1}]=${this.memory[this.pc+1]}`);
+                console.error(`=== EXECUTION LIMIT EXCEEDED ===`);
+                console.error(`Executed ${instructionCount} instructions`);
+                console.error(`Output generated: ${this.outputBuffer.length} bytes`);
+                console.error(`Last PC: ${this.pc}, A=${this.a}, B=${this.b}, SP=${this.sp}`);
+                console.error(`Input remaining: ${this.inputBuffer.length - this.inputPos} bytes`);
                 throw new Error('Execution limit exceeded (possible infinite loop)');
             }
             

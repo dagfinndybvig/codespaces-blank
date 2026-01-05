@@ -21,8 +21,11 @@ class BCPLCompiler {
             ]);
 
             // Parse syni+trni together (concatenate the INTCODE text before parsing)
-            // This is how icint.c does it - multiple ICFILE loads assemble into same memory
-            const syniTriniText = syniText + '\n' + trniText;
+            // Remove leading 'Z' commands from trni since we're appending to syni
+            const trniWithoutZ = trniText.replace(/^[\s\r\n]*Z[\s\r\n]*/, '');
+            const syniTriniText = syniText + '\n' + trniWithoutZ;
+            console.log('Combined syni+trni, lengths:', syniText.length, '+', trniWithoutZ.length, '=', syniTriniText.length);
+            
             this.syniTriniCode = this.assembler.parse(syniTriniText);
             this.cgiCode = this.assembler.parse(cgiText);
 
