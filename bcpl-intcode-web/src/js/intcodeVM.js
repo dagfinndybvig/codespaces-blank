@@ -91,6 +91,17 @@ class IntcodeVM {
         this.running = false;
     }
     
+    // Convert to 16-bit signed integer (-32768 to 32767)
+    toSigned16(value) {
+        // Wrap to 16-bit range
+        value = value & 0xFFFF;
+        // Convert to signed
+        if (value >= 0x8000) {
+            return value - 0x10000;
+        }
+        return value;
+    }
+    
     // Load INTCODE from binary data
     loadIntcode(data) {
         // Assembler returns full memory array (0 to lomem)
@@ -166,7 +177,7 @@ class IntcodeVM {
         
         // Apply modifiers
         if (w & this.FP_BIT) d += this.sp;  // P-relative
-        if (w & this.FI_BIT) d = this.memory[d];  // Indirect
+        if (w & this.FI_BIT) d = this.toSigned16(this.memory[d]);  // Indirect (treat as signed)
         
         // Decode and execute
         const opcode = w & this.F7_X;
@@ -179,7 +190,7 @@ class IntcodeVM {
         switch (opcode) {
             case this.F0_L:  // Load
                 this.b = this.a;
-                this.a = d;
+                this.a = this.toSigned16(d);  // Treat loaded value as signed
                 break;
                 
             case this.F1_S:  // Store
@@ -187,7 +198,7 @@ class IntcodeVM {
                 break;
                 
             case this.F2_A:  // Add
-                this.a += d;
+                this.a = this.toSigned16(this.a + d);
                 break;
                 
             case this.F3_J:  // Jump
@@ -384,32 +395,32 @@ class IntcodeVM {
     executeOperator(op) {
         switch (op) {
             case 1:  // Indirection
-                this.a = this.memory[this.a];
+                this.a = this.toSigned16(this.memory[this.a]);
                 break;
             case 2:  // Negate
-                this.a = -this.a;
+                this.a = this.toSigned16(-this.a);
                 break;
             case 3:  // NOT
-                this.a = ~this.a;
+                this.a = this.toSigned16(~this.a);
                 break;
             case 4:  // Return
                 this.pc = this.memory[this.sp + 1];
                 this.sp = this.memory[this.sp];
                 break;
             case 5:  // Multiply
-                this.a = this.b * this.a;
+                this.a = this.toSigned16(this.b * this.a);
                 break;
             case 6:  // Divide
-                if (this.a) this.a = Math.floor(this.b / this.a);
+                if (this.a) this.a = this.toSigned16(Math.floor(this.b / this.a));
                 break;
             case 7:  // Remainder
-                if (this.a) this.a = this.b % this.a;
+                if (this.a) this.a = this.toSigned16(this.b % this.a);
                 break;
             case 8:  // Add
-                this.a = this.b + this.a;
+                this.a = this.toSigned16(this.b + this.a);
                 break;
             case 9:  // Subtract
-                this.a = this.b - this.a;
+                this.a = this.toSigned16(this.b - this.a);
                 break;
             case 10:  // Equal
                 this.a = -(this.b === this.a);
@@ -430,22 +441,22 @@ class IntcodeVM {
                 this.a = -(this.b <= this.a);
                 break;
             case 16:  // Left shift
-                this.a = this.b << this.a;
+                this.a = this.toSigned16(this.b << this.a);
                 break;
             case 17:  // Right shift
-                this.a = this.b >> this.a;
+                this.a = this.toSigned16(this.b >> this.a);
                 break;
             case 18:  // Bitwise AND
-                this.a = this.b & this.a;
+                this.a = this.toSigned16(this.b & this.a);
                 break;
             case 19:  // Bitwise OR
-                this.a = this.b | this.a;
+                this.a = this.toSigned16(this.b | this.a);
                 break;
             case 20:  // Bitwise XOR
-                this.a = this.b ^ this.a;
+                this.a = this.toSigned16(this.b ^ this.a);
                 break;
             case 21:  // Bitwise EQV
-                this.a = ~(this.b ^ this.a);
+                this.a = this.toSigned16(~(this.b ^ this.a));
                 break;
             case 22:  // Return from function (same as STOP but returns 0)
                 this.running = false;
