@@ -4,10 +4,9 @@
 class BCPLCompiler {
     constructor() {
         this.vm = new IntcodeVM();
-        this.assembler = new IntcodeAssembler2();
+        this.assembler = new IntcodeAssembler();
         this.compilerLoaded = false;
-        this.syniCode = null;
-        this.trniCode = null;
+        this.syniTriniCode = null;
         this.cgiCode = null;
         this.compiledIntcode = null;
     }
@@ -16,20 +15,20 @@ class BCPLCompiler {
         try {
             // Load all three compiler stages
             const [syniText, trniText, cgiText] = await Promise.all([
-                fetch('../examples/syni').then(r => r.text()),
-                fetch('../examples/trni').then(r => r.text()),
-                fetch('../examples/cgi').then(r => r.text())
+                fetch('compiler/syni').then(r => r.text()),
+                fetch('compiler/trni').then(r => r.text()),
+                fetch('compiler/cgi').then(r => r.text())
             ]);
 
-            // Parse INTCODE
-            this.syniCode = this.assembler.parse(syniText);
-            this.trniCode = this.assembler.parse(trniText);
+            // Parse syni+trni together (concatenate the INTCODE text before parsing)
+            // This is how icint.c does it - multiple ICFILE loads assemble into same memory
+            const syniTriniText = syniText + '\n' + trniText;
+            this.syniTriniCode = this.assembler.parse(syniTriniText);
             this.cgiCode = this.assembler.parse(cgiText);
 
             this.compilerLoaded = true;
             console.log('Compilers loaded:', {
-                syni: this.syniCode.length,
-                trni: this.trniCode.length,
+                'syni+trni': this.syniTriniCode.length,
                 cgi: this.cgiCode.length
             });
 
@@ -42,6 +41,12 @@ class BCPLCompiler {
 
     // Run a single compilation stage
     async runStage(stageCode, input) {
+        console.log(`Running stage with input length: ${input.length}`);
+        console.log(`Input preview: ${input.substring(0, 200)}`);
+        
+        // Create fresh VM for each stage
+        this.vm = new IntcodeVM();
+        
         // Load the stage code into VM
         this.vm.loadIntcode(stageCode);
         
@@ -50,13 +55,27 @@ class BCPLCompiler {
         for (let i = 0; i < input.length; i++) {
             this.vm.inputBuffer.push(input.charCodeAt(i));
         }
+        // Note: rdch() will return -1 (ENDSTREAMCH) when buffer is exhausted
         this.vm.inputPos = 0;
+        
+        console.log(`Input buffer set: ${this.vm.inputBuffer.length} bytes`);
 
         // Run the VM
         const result = this.vm.run();
         
+        console.log(`Stage result:`, {
+            success: result.success,
+            outputLength: result.output ? result.output.length : 0,
+            error: result.error
+        });
+        console.log(`Output preview: ${result.output ? result.output.substring(0, 200) : 'none'}`);
+        
         if (!result.success) {
             throw new Error('Compilation stage failed: ' + result.error);
+        }
+        
+        if (!result.output || result.output.length === 0) {
+            throw new Error('Compilation stage produced no output');
         }
 
         return result.output;
@@ -69,29 +88,27 @@ class BCPLCompiler {
 
         const stages = [];
 
-        // Stage 1: Syntax analyzer (syni)
-        console.log('Stage 1: Running syni...');
-        const ocode1 = await this.runStage(this.syniCode, sourceCode);
-        stages.push({ name: 'syni', output: ocode1 });
-        console.log('syni output length:', ocode1.length);
+        // Stage 1 & 2: Syntax analyzer + Translator (syni + trni loaded together)
+        console.log('Stage 1&2: Running syni+trni...');
+        const ocode = await this.runStage(this.syniTriniCode, sourceCode);
+        console.log('syni+trni output length:', ocode ? ocode.length : 0);
+        stages.push({ name: 'syni+trni', output: ocode });
 
-        // Stage 2: Translator (trni)
-        console.log('Stage 2: Running trni...');
-        const ocode2 = await this.runStage(this.trniCode, ocode1);
-        stages.push({ name: 'trni', output: ocode2 });
-        console.log('trni output length:', ocode2.length);
+        if (!ocode || ocode.length === 0) {
+            throw new Error('syni+trni stage produced no output');
+        }
 
         // Stage 3: Code generator (cgi)
         console.log('Stage 3: Running cgi...');
-        const intcode = await this.runStage(this.cgiCode, ocode2);
-        stages.push({ name: 'cgi', output: intcode });
-        console.log('cgi output length:', intcode.length);
+        const ocode2 = await this.runStage(this.cgiCode, ocode);
+        stages.push({ name: 'cgi', output: ocode2 });
+        console.log('cgi output length:', ocode2.length);
 
-        this.compiledIntcode = intcode;
+        this.compiledIntcode = ocode2;
 
         return {
             success: true,
-            intcode: intcode,
+            intcode: ocode2,
             stages: stages
         };
     }
@@ -123,7 +140,10 @@ class BCPLCompiler {
 
 // UI Controller
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('Compiler page loaded');
+    
     const compiler = new BCPLCompiler();
+    console.log('BCPLCompiler instance created');
     
     const fileInput = document.getElementById('fileInput');
     const sourceEditor = document.getElementById('sourceEditor');
@@ -133,6 +153,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const downloadButton = document.getElementById('downloadIntcodeButton');
     const clearButton = document.getElementById('clearButton');
     const progress = document.getElementById('progress');
+
+    console.log('All elements found:', {
+        fileInput: !!fileInput,
+        sourceEditor: !!sourceEditor,
+        outputArea: !!outputArea,
+        compileButton: !!compileButton,
+        compileRunButton: !!compileRunButton,
+        downloadButton: !!downloadButton,
+        clearButton: !!clearButton,
+        progress: !!progress
+    });
 
     // Load file
     fileInput.addEventListener('change', async (event) => {
@@ -173,6 +204,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Compile only
     compileButton.addEventListener('click', async () => {
+        console.log('Compile button clicked');
         const source = sourceEditor.value.trim();
         if (!source) {
             outputArea.value = 'Error: No source code to compile\n';
@@ -186,6 +218,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Step 1: Load compilers
             updateProgress(1, 'active');
+            outputArea.value += '⚙️ Loading compilers...\n';
             await compiler.loadCompilers();
             updateProgress(1, 'done');
             outputArea.value += '✅ Compilers loaded\n\n';

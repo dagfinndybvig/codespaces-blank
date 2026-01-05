@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compiler Test</title>
+</head>
+<body>
+    <h1>Compiler Test</h1>
+    <button id="testBtn">Test Compiler</button>
+    <pre id="output"></pre>
+
+    <script src="js/intcodeVM.js"></script>
+    <script src="js/intcodeAssembler2.js"></script>
+    <script>
+        document.getElementById('testBtn').addEventListener('click', async () => {
+            const output = document.getElementById('output');
+            output.textContent = 'Testing...\n';
+            
+            try {
+                output.textContent += '1. Creating VM...\n';
+                const vm = new IntcodeVM();
+                output.textContent += '   ✓ VM created\n';
+                
+                output.textContent += '2. Creating Assembler...\n';
+                const assembler = new IntcodeAssembler();
+                output.textContent += '   ✓ Assembler created\n';
+                
+                output.textContent += '3. Loading compiler files...\n';
+                const response = await fetch('../examples/syni');
+                output.textContent += `   Response status: ${response.status}\n`;
+                
+                const text = await response.text();
+                output.textContent += `   ✓ Loaded ${text.length} bytes\n`;
+                
+                output.textContent += '4. Parsing INTCODE...\n';
+                const code = assembler.parse(text);
+                output.textContent += `   ✓ Parsed ${code.length} words\n`;
+                
+                output.textContent += '\n✅ All tests passed!\n';
+                
+            } catch (error) {
+                output.textContent += `\n❌ Error: ${error.message}\n`;
+                output.textContent += error.stack;
+                console.error(error);
+            }
+        });
+    </script>
+</body>
+</html>

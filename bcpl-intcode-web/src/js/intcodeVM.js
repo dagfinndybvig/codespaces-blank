@@ -19,6 +19,12 @@ class IntcodeVM {
         this.inputBuffer = [];
         this.inputPos = 0;
         
+        // Stream handles (like in icint.c)
+        this.cis = 1;  // Current input stream (1 = stdin)
+        this.cos = 1;  // Current output stream (1 = stdout)
+        this.sysin = 1;
+        this.sysprint = 1;
+        
         // System variables
         this.lomem = this.PROGSTART;
         this.himem = this.WORDCOUNT - 1;
@@ -132,7 +138,7 @@ class IntcodeVM {
         console.log(`First instruction at PC=${this.pc}: ${this.memory[this.pc]}`);
         
         let instructionCount = 0;
-        const maxInstructions = 100000; // Increased for long-running programs
+        const maxInstructions = 10000000; // Very high limit for compiler stages
         
         try {
             while (this.running && instructionCount < maxInstructions) {
@@ -256,11 +262,13 @@ class IntcodeVM {
                 break;
                 
             case this.K_CALLS.SELECTINPUT:
-                // Input stream selection - not implemented
+                this.cis = this.memory[args];
+                console.log(`SELECTINPUT: ${this.cis}`);
                 break;
                 
             case this.K_CALLS.SELECTOUTPUT:
-                // Output stream selection - not implemented
+                this.cos = this.memory[args];
+                console.log(`SELECTOUTPUT: ${this.cos}`);
                 break;
                 
             case this.K_CALLS.RDCH:
@@ -272,11 +280,11 @@ class IntcodeVM {
                 break;
                 
             case this.K_CALLS.INPUT:
-                this.a = 1; // Default input stream
+                this.a = this.cis; // Current input stream
                 break;
                 
             case this.K_CALLS.OUTPUT:
-                this.a = 1; // Default output stream
+                this.a = this.cos; // Current output stream
                 break;
                 
             case this.K_CALLS.STOP:
@@ -306,8 +314,15 @@ class IntcodeVM {
                 break;
                 
             case this.K_CALLS.FINDOUTPUT:
+                // Return sysprint (stdout) stream handle
+                this.a = this.sysprint;
+                console.log(`FINDOUTPUT called, returning ${this.a}`);
+                break;
+                
             case this.K_CALLS.FINDINPUT:
-                this.a = 1; // Dummy file handle
+                // Return sysin (stdin) stream handle  
+                this.a = this.sysin;
+                console.log(`FINDINPUT called, returning ${this.a}`);
                 break;
                 
             case this.K_CALLS.ENDREAD:
@@ -485,10 +500,13 @@ class IntcodeVM {
     
     // I/O Functions
     wrch(ch) {
-        if (ch === 10) {  // LF
-            this.outputBuffer.push('\n');
-        } else {
-            this.outputBuffer.push(String.fromCharCode(ch));
+        // Only write if outputting to current stream (cos = sysprint)
+        if (this.cos === this.sysprint) {
+            if (ch === 10) {  // LF
+                this.outputBuffer.push('\n');
+            } else {
+                this.outputBuffer.push(String.fromCharCode(ch));
+            }
         }
     }
     
