@@ -121,11 +121,11 @@ class IntcodeVM {
         console.log(`First instruction at PC=${this.pc}: ${this.memory[this.pc]}`);
         
         let instructionCount = 0;
-        const maxInstructions = 10000; // Increased for more execution
+        const maxInstructions = 100000; // Increased for long-running programs
         
         try {
             while (this.running && instructionCount < maxInstructions) {
-                if (instructionCount < 20) {  // Reduced trace to first 20 instructions
+                if (instructionCount < 10) {  // Only trace first 10 instructions
                     const inst = this.memory[this.pc];
                     const opcode = inst & 0x7;
                     const opcodeNames = ['L', 'S', 'A', 'J', 'T', 'F', 'K', 'X'];
@@ -446,6 +446,26 @@ class IntcodeVM {
                 break;
             case 21:  // Bitwise EQV
                 this.a = ~(this.b ^ this.a);
+                break;
+            case 22:  // Return from function (same as STOP but returns 0)
+                this.running = false;
+                break;
+            case 23:  // SWITCH statement (jump table)
+                {
+                    // v = &m[pc]; b = *v++; pc = *v++;
+                    let v = this.pc;
+                    this.b = this.memory[v++];
+                    this.pc = this.memory[v++];
+                    // for (; b--; v += 2) if (a == v[0]) { pc = v[1]; goto fetch; }
+                    let count = this.b;
+                    while (count-- > 0) {
+                        if (this.a === this.memory[v]) {
+                            this.pc = this.memory[v + 1];
+                            break;
+                        }
+                        v += 2;
+                    }
+                }
                 break;
             default:
                 throw new Error(`Unknown operator: ${op}`);
