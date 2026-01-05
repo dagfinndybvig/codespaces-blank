@@ -110,6 +110,17 @@ class IntcodeVM {
     
     // Load INTCODE from binary data
     loadIntcode(data) {
+        // Validate data
+        if (!data || !Array.isArray(data)) {
+            throw new Error('Invalid intcode data: must be an array');
+        }
+        if (data.length <= 0) {
+            throw new Error('Invalid intcode data: array is empty');
+        }
+        if (data.length > this.WORDCOUNT) {
+            throw new Error(`Invalid intcode data: too large (${data.length} words, max ${this.WORDCOUNT})`);
+        }
+        
         // Assembler returns full memory array (0 to lomem)
         // Copy entire array including globals (0-400) and program (401+)
         for (let i = 0; i < data.length; i++) {

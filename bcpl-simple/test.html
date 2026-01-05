@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>VM Test</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #1e1e1e; color: #d4d4d4; }
+        pre { background: #252526; padding: 10px; }
+        button { margin: 10px 0; padding: 10px 20px; }
+    </style>
+</head>
+<body>
+    <h1>VM Test</h1>
+    <button onclick="testVM()">Test VM</button>
+    <button onclick="testAssembler()">Test Assembler</button>
+    <button onclick="testCompilerLoad()">Test Compiler Load</button>
+    <pre id="output"></pre>
+    
+    <script src="vm.js"></script>
+    <script src="assembler.js"></script>
+    <script src="compiler.js"></script>
+    <script>
+        function log(msg) {
+            document.getElementById('output').textContent += msg + '\n';
+        }
+        
+        async function testVM() {
+            document.getElementById('output').textContent = '';
+            log('Testing VM...');
+            
+            try {
+                const vm = new IntcodeVM();
+                // Simple program: Load 42, write as char, halt
+                // K42 X22 X21
+                vm.memory[401] = 0x0156;  // K42
+                vm.memory[402] = 0x00B7;  // X22 (WRCH)
+                vm.memory[403] = 0x00A7;  // X21 (FINISH)
+                vm.pc = 401;
+                vm.g = 200;
+                vm.st = 400;
+                
+                const output = await vm.run();
+                log('Output: ' + output);
+                log('Character code: ' + output.charCodeAt(0));
+                log('✓ VM works!');
+            } catch (e) {
+                log('✗ VM failed: ' + e.message);
+                console.error(e);
+            }
+        }
+        
+        async function testAssembler() {
+            document.getElementById('output').textContent = '';
+            log('Testing Assembler...');
+            
+            try {
+                const asm = new IntcodeAssembler();
+                // Simple test code
+                const code = 'K42 X22 X21 Z';
+                const binary = asm.assemble(code);
+                log('Assembled ' + binary.length + ' words');
+                log('Binary: ' + binary.map(w => '0x' + w.toString(16)).join(' '));
+                
+                // Run it
+                const vm = new IntcodeVM();
+                vm.load(binary, 401);
+                const output = await vm.run();
+                log('Output: ' + JSON.stringify(output));
+                log('✓ Assembler works!');
+            } catch (e) {
+                log('✗ Assembler failed: ' + e.message);
+                console.error(e);
+            }
+        }
+        
+        async function testCompilerLoad() {
+            document.getElementById('output').textContent = '';
+            log('Testing Compiler Load...');
+            
+            try {
+                const compiler = new BCPLCompiler();
+                log('Loading compilers...');
+                await compiler.loadCompilers();
+                log('Syni: ' + compiler.syni.length + ' words');
+                log('Trni: ' + compiler.trni.length + ' words');
+                log('Cgi: ' + compiler.cgi.length + ' words');
+                log('Syni+Trni: ' + compiler.syniTrni.length + ' words');
+                log('✓ Compilers loaded!');
+                
+                // Try running syni+trni with minimal input
+                log('\nTesting SYNI+TRNI with input "X"...');
+                const vm = new IntcodeVM();
+                vm.setInput('X');
+                vm.load(compiler.syniTrni, 401);
+                vm.g = 200;
+                vm.st = 400;
+                vm.maxInstructions = 1000000;  // Just 1M for test
+                
+                vm.progressCallback = (count) => {
+                    log('  ' + (count/1000).toFixed(0) + 'K instructions...');
+                };
+                
+                try {
+                    const output = await vm.run();
+                    log('Output length: ' + output.length);
+                    log('First 200 chars: ' + output.substring(0, 200));
+                } catch (e) {
+                    log('VM stopped: ' + e.message);
+                    log('Instructions executed: ' + vm.instructionCount.toLocaleString());
+                    log('Output so far: ' + vm.output.length + ' chars');
+                }
+                
+            } catch (e) {
+                log('✗ Test failed: ' + e.message);
+                console.error(e);
+            }
+        }
+    </script>
+</body>
+</html>

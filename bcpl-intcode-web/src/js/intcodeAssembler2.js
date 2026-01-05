@@ -1,4 +1,6 @@
 // INTCODE Assembler - matching icint.c implementation
+// VERSION 5 - Label stack size 10000
+console.log('IntcodeAssembler2.js VERSION 5 loaded - label stack size: 10000');
 
 class IntcodeAssembler {
     constructor() {
@@ -11,7 +13,8 @@ class IntcodeAssembler {
         
         this.lomem = 401;  // PROGSTART
         this.labels = {};  // label name -> address
-        this.labelValueStack = new Array(500).fill(0);  // label number -> address or chain
+        this.labelValueStack = new Array(10000).fill(0);  // label number -> address or chain (large enough for syni+trni)
+        console.log(`IntcodeAssembler constructor: labelValueStack.length = ${this.labelValueStack.length}`);
         this.ch = '';
         this.input = '';
         this.pos = 0;
@@ -68,11 +71,21 @@ class IntcodeAssembler {
     }
     
     stw(word) {
+        if (this.lomem >= this.memory.length) {
+            throw new Error(`Memory overflow: lomem=${this.lomem} exceeds memory size ${this.memory.length}`);
+        }
+        if (typeof word !== 'number' || isNaN(word)) {
+            throw new Error(`Invalid word value: ${word} (type: ${typeof word})`);
+        }
         this.memory[this.lomem++] = word;
     }
     
     labref(labelNum, addr) {
         // Add label reference to chain
+        if (labelNum < 0 || labelNum >= this.labelValueStack.length) {
+            console.error('Label stack length:', this.labelValueStack.length);
+            throw new Error(`Label number ${labelNum} out of range (max ${this.labelValueStack.length - 1})`);
+        }
         const k = this.labelValueStack[labelNum];
         if (k < 0) {
             // Label already defined, store its address
@@ -92,9 +105,10 @@ class IntcodeAssembler {
         this.pos = 0;
         this.lomem = 401;
         this.labels = {};
-        this.labelValueStack = new Array(500).fill(0);
+        this.labelValueStack = new Array(10000).fill(0);  // Reset with large enough size for syni+trni
         
         console.log(`Parsing ${text.length} characters of INTCODE`);
+        console.log(`*** PARSE METHOD: labelValueStack size = ${this.labelValueStack.length} ***`);
         console.log(`First 200 chars: ${text.substring(0, 200)}`);
         
         // Add startup code like icint.c init() does
@@ -109,44 +123,57 @@ class IntcodeAssembler {
         console.log(`Labels defined:`, Object.keys(this.labels).length);
         console.log(`First 30 words:`, this.memory.slice(401, 431));
         
+        // Validate lomem before slicing
+        if (this.lomem < 0 || this.lomem > this.memory.length) {
+            throw new Error(`Invalid lomem value: ${this.lomem} (must be between 0 and ${this.memory.length})`);
+        }
+        
         return this.memory.slice(0, this.lomem);
     }
     
     assemble() {
-        while (true) {
-            this.rch();
-            
-            // Skip whitespace, $ separator, and control chars (but NOT '/' which is handled in rch())
-            while (this.ch === ' ' || this.ch === '\n' || this.ch === '\r' || 
-                   this.ch === '\t' || this.ch === '$') {
+        try {
+            while (true) {
                 this.rch();
-            }
-            
-            // Check for label definition (number at start)
-            if (this.ch >= '0' && this.ch <= '9') {
-                const labelNum = this.rdn();
-                const currentAddr = this.lomem;
                 
-                console.log(`Label ${labelNum} defined at ${currentAddr}`);
-                
-                // Check for duplicate label (warn but continue)
-                if (this.labelValueStack[labelNum] < 0) {
-                    console.warn(`Warning: Duplicate label ${labelNum} (was ${-this.labelValueStack[labelNum]}, now ${currentAddr})`);
+                // Skip whitespace, $ separator, and control chars (but NOT '/' which is handled in rch())
+                while (this.ch === ' ' || this.ch === '\n' || this.ch === '\r' || 
+                       this.ch === '\t' || this.ch === '$') {
+                    this.rch();
                 }
                 
-                // Resolve forward references
-                let k = this.labelValueStack[labelNum];
-                while (k > 0) {
-                    const tmp = this.memory[k];
-                    this.memory[k] = currentAddr;
-                    k = tmp;
+                // Check for label definition (number at start)
+                if (this.ch >= '0' && this.ch <= '9') {
+                    const labelNum = this.rdn();
+                    const currentAddr = this.lomem;
+                    
+                    if (this.lomem < 450) {  // Only log first few labels
+                        console.log(`Label ${labelNum} defined at ${currentAddr}`);
+                    }
+                    
+                    // Validate label number
+                    if (labelNum < 0 || labelNum >= this.labelValueStack.length) {
+                        throw new Error(`Label number ${labelNum} out of range (max ${this.labelValueStack.length - 1}) at position ${this.pos}`);
+                    }
+                    
+                    // Check for duplicate label (warn but continue)
+                    if (this.labelValueStack[labelNum] < 0) {
+                        console.warn(`Warning: Duplicate label ${labelNum} (was ${-this.labelValueStack[labelNum]}, now ${currentAddr})`);
+                    }
+                    
+                    // Resolve forward references
+                    let k = this.labelValueStack[labelNum];
+                    while (k > 0) {
+                        const tmp = this.memory[k];
+                        this.memory[k] = currentAddr;
+                        k = tmp;
+                    }
+                    
+                    // Mark label as defined (negative means defined)
+                    this.labels[`L${labelNum}`] = currentAddr;
+                    this.labelValueStack[labelNum] = -currentAddr;
+                    continue;
                 }
-                
-                // Mark label as defined (negative means defined)
-                this.labels[`L${labelNum}`] = currentAddr;
-                this.labelValueStack[labelNum] = -currentAddr;
-                continue;
-            }
             
             // End of stream
             if (this.ch === '\0') {
@@ -269,6 +296,16 @@ class IntcodeAssembler {
             if (this.labelValueStack[i] > 0) {
                 console.warn(`Unresolved label ${i}`);
             }
+        }
+        } catch (error) {
+            console.error('Error during assembly:', error);
+            console.error('Assembly state:', {
+                lomem: this.lomem,
+                pos: this.pos,
+                ch: this.ch,
+                inputLength: this.input.length
+            });
+            throw error;
         }
     }
 }

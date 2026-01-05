@@ -14,11 +14,18 @@ class BCPLCompiler {
     async loadCompilers() {
         try {
             // Load all three compiler stages
+            console.log('Fetching compiler files...');
             const [syniText, trniText, cgiText] = await Promise.all([
                 fetch('compiler/syni').then(r => r.text()),
                 fetch('compiler/trni').then(r => r.text()),
                 fetch('compiler/cgi').then(r => r.text())
             ]);
+
+            console.log('Files loaded:', {
+                syni: syniText.length,
+                trni: trniText.length,
+                cgi: cgiText.length
+            });
 
             // Parse syni+trni together (concatenate the INTCODE text before parsing)
             // Remove leading 'Z' commands from trni since we're appending to syni
@@ -26,8 +33,13 @@ class BCPLCompiler {
             const syniTriniText = syniText + '\n' + trniWithoutZ;
             console.log('Combined syni+trni, lengths:', syniText.length, '+', trniWithoutZ.length, '=', syniTriniText.length);
             
+            console.log('Parsing syni+trni...');
             this.syniTriniCode = this.assembler.parse(syniTriniText);
+            console.log('syni+trni parsed successfully, length:', this.syniTriniCode.length);
+            
+            console.log('Parsing cgi...');
             this.cgiCode = this.assembler.parse(cgiText);
+            console.log('cgi parsed successfully, length:', this.cgiCode.length);
 
             this.compilerLoaded = true;
             console.log('Compilers loaded:', {
@@ -38,50 +50,63 @@ class BCPLCompiler {
             return true;
         } catch (error) {
             console.error('Failed to load compilers:', error);
+            console.error('Error stack:', error.stack);
             throw new Error('Failed to load compiler components: ' + error.message);
         }
     }
 
     // Run a single compilation stage
     async runStage(stageCode, input) {
-        console.log(`Running stage with input length: ${input.length}`);
-        console.log(`Input preview: ${input.substring(0, 200)}`);
-        
-        // Create fresh VM for each stage
-        this.vm = new IntcodeVM();
-        
-        // Load the stage code into VM
-        this.vm.loadIntcode(stageCode);
-        
-        // Set input buffer (convert string to byte array)
-        this.vm.inputBuffer = [];
-        for (let i = 0; i < input.length; i++) {
-            this.vm.inputBuffer.push(input.charCodeAt(i));
-        }
-        // Note: rdch() will return -1 (ENDSTREAMCH) when buffer is exhausted
-        this.vm.inputPos = 0;
-        
-        console.log(`Input buffer set: ${this.vm.inputBuffer.length} bytes`);
+        try {
+            console.log(`Running stage with input length: ${input.length}`);
+            console.log(`Input preview: ${input.substring(0, 200)}`);
+            
+            // Validate stageCode
+            if (!stageCode || !Array.isArray(stageCode) || stageCode.length === 0) {
+                throw new Error(`Invalid stage code: ${stageCode ? typeof stageCode : 'null'}`);
+            }
+            console.log(`Stage code loaded: ${stageCode.length} words`);
+            
+            // Create fresh VM for each stage
+            this.vm = new IntcodeVM();
+            
+            // Load the stage code into VM
+            this.vm.loadIntcode(stageCode);
+            
+            // Set input buffer (convert string to byte array)
+            this.vm.inputBuffer = [];
+            for (let i = 0; i < input.length; i++) {
+                this.vm.inputBuffer.push(input.charCodeAt(i));
+            }
+            // Note: rdch() will return -1 (ENDSTREAMCH) when buffer is exhausted
+            this.vm.inputPos = 0;
+            
+            console.log(`Input buffer set: ${this.vm.inputBuffer.length} bytes`);
 
-        // Run the VM
-        const result = this.vm.run();
-        
-        console.log(`Stage result:`, {
-            success: result.success,
-            outputLength: result.output ? result.output.length : 0,
-            error: result.error
-        });
-        console.log(`Output preview: ${result.output ? result.output.substring(0, 200) : 'none'}`);
-        
-        if (!result.success) {
-            throw new Error('Compilation stage failed: ' + result.error);
-        }
-        
-        if (!result.output || result.output.length === 0) {
-            throw new Error('Compilation stage produced no output');
-        }
+            // Run the VM
+            const result = this.vm.run();
+            
+            console.log(`Stage result:`, {
+                success: result.success,
+                outputLength: result.output ? result.output.length : 0,
+                error: result.error
+            });
+            console.log(`Output preview: ${result.output ? result.output.substring(0, 200) : 'none'}`);
+            
+            if (!result.success) {
+                throw new Error('Compilation stage failed: ' + result.error);
+            }
+            
+            if (!result.output || result.output.length === 0) {
+                throw new Error('Compilation stage produced no output');
+            }
 
-        return result.output;
+            return result.output;
+        } catch (error) {
+            console.error('Error in runStage:', error);
+            console.error('Stack trace:', error.stack);
+            throw error;
+        }
     }
 
     async compile(sourceCode) {
