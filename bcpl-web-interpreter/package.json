@@ -1,0 +1,15 @@
+{
+  "name": "bcpl-web-interpreter",
+  "version": "1.0.0",
+  "description": "A web-based interpreter for BCPL source files using WebAssembly.",
+  "main": "src/js/main.js",
+  "scripts": {
+    "build-wasm": "sh tools/build-wasm.sh",
+    "start": "http-server src"
+  },
+  "dependencies": {
+    "http-server": "^0.12.3"
+  },
+  "author": "Your Name",
+  "license": "MIT"
+}

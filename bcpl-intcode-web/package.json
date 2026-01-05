@@ -1,0 +1,14 @@
+{
+  "name": "bcpl-intcode-web",
+  "version": "1.0.0",
+  "description": "Web-based INTCODE virtual machine for running compiled BCPL programs",
+  "main": "src/js/main.js",
+  "scripts": {
+    "start": "http-server src -p 8081"
+  },
+  "dependencies": {
+    "http-server": "^0.12.3"
+  },
+  "author": "",
+  "license": "MIT"
+}

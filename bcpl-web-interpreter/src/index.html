@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BCPL Web Interpreter</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🖥️ BCPL Web Interpreter</h1>
+            <p class="subtitle">Run BCPL programs directly in your browser</p>
+        </header>
+
+        <div id="messageContainer"></div>
+
+        <div class="main-content">
+            <div class="editor-panel">
+                <div class="panel-header">
+                    <h2>Code Editor</h2>
+                    <span id="fileName" class="file-name">example.b</span>
+                </div>
+                
+                <div class="toolbar">
+                    <div class="toolbar-group">
+                        <label for="fileInput" class="btn btn-secondary">
+                            📁 Open File
+                            <input type="file" id="fileInput" accept=".b" style="display: none;" />
+                        </label>
+                        <button id="downloadButton" class="btn btn-secondary">💾 Download</button>
+                        <button id="clearButton" class="btn btn-secondary">🗑️ Clear</button>
+                    </div>
+                    
+                    <div class="toolbar-group">
+                        <select id="exampleSelect" class="example-select">
+                            <option value="">-- Select Example --</option>
+                            <option value="hello">Hello World</option>
+                            <option value="loop">Loop Example</option>
+                            <option value="fibonacci">Fibonacci Sequence</option>
+                            <option value="arithmetic">Arithmetic Demo</option>
+                        </select>
+                        <button id="loadExampleButton" class="btn btn-secondary">Load Example</button>
+                    </div>
+                    
+                    <div class="toolbar-group">
+                        <button id="runButton" class="btn btn-primary">▶️ Run Code</button>
+                    </div>
+                </div>
+
+                <textarea id="codeEditor" class="code-editor" placeholder="Enter your BCPL code here..." spellcheck="false"></textarea>
+            </div>
+
+            <div class="output-panel">
+                <div class="panel-header">
+                    <h2>Output</h2>
+                </div>
+                <pre id="output" class="output-area">Click "Run Code" to see output here...</pre>
+            </div>
+        </div>
+
+        <footer>
+            <div class="info-section">
+                <h3>About BCPL</h3>
+                <p>
+                    BCPL (Basic Combined Programming Language) is a procedural, imperative, and structured programming language 
+                    designed by Martin Richards in 1966. It was a precursor to C and influenced many modern languages.
+                </p>
+                <h4>Quick Reference:</h4>
+                <ul class="reference-list">
+                    <li><code>LET START() BE $( ... $)</code> - Main program entry point</li>
+                    <li><code>WRITES("text")</code> - Write a string</li>
+                    <li><code>WRITEF("format", args)</code> - Formatted output</li>
+                    <li><code>*N</code> - Newline, <code>*T</code> - Tab, <code>*S</code> - Space</li>
+                    <li><code>FOR i = 1 TO 10 DO</code> - Loop construct</li>
+                    <li><code>GET "LIBHDR"</code> - Include library header</li>
+                </ul>
+            </div>
+        </footer>
+    </div>
+
+    <script src="js/bcplInterpreter.js"></script>
+    <script src="js/fileHandler.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>

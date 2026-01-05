@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>BCPL Interpreter Test</title>
+</head>
+<body>
+    <h1>BCPL Interpreter Test Suite</h1>
+    <div id="results"></div>
+    
+    <script src="js/bcplInterpreter.js"></script>
+    <script>
+        const results = document.getElementById('results');
+        const interpreter = new BCPLInterpreter();
+        
+        function runTest(name, code, expectedOutput) {
+            const result = interpreter.run(code);
+            const passed = result.success && result.output === expectedOutput;
+            
+            const div = document.createElement('div');
+            div.style.padding = '10px';
+            div.style.margin = '10px 0';
+            div.style.border = '1px solid ' + (passed ? 'green' : 'red');
+            div.style.backgroundColor = passed ? '#e0ffe0' : '#ffe0e0';
+            
+            div.innerHTML = `
+                <strong>${name}</strong>: ${passed ? '✓ PASS' : '✗ FAIL'}<br>
+                Expected: <pre>${expectedOutput}</pre>
+                Got: <pre>${result.output}</pre>
+                ${result.error ? 'Error: ' + result.error : ''}
+            `;
+            
+            results.appendChild(div);
+        }
+        
+        // Test 1: Simple WRITES
+        runTest(
+            'Simple WRITES',
+            'GET "LIBHDR"\nLET START() BE $(\n  WRITES("Hello*N")\n$)',
+            'Hello\n'
+        );
+        
+        // Test 2: Multiple WRITES
+        runTest(
+            'Multiple WRITES',
+            'GET "LIBHDR"\nLET START() BE $(\n  WRITES("A*N")\n  WRITES("B*N")\n$)',
+            'A\nB\n'
+        );
+        
+        // Test 3: FOR loop
+        runTest(
+            'FOR Loop',
+            'GET "LIBHDR"\nLET START() BE $(\n  FOR I = 1 TO 3 DO $(\n    WRITEF("%I*N", I)\n  $)\n$)',
+            '1\n2\n3\n'
+        );
+        
+        console.log('Tests completed!');
+    </script>
+</body>
+</html>

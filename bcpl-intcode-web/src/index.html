@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BCPL INTCODE Virtual Machine</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🖥️ BCPL INTCODE Virtual Machine</h1>
+            <p class="subtitle">Run compiled BCPL bytecode in your browser</p>
+        </header>
+
+        <div class="main-content">
+            <div class="control-panel">
+                <h2>Load INTCODE File</h2>
+                <div class="file-input-wrapper">
+                    <label for="fileInput" class="btn btn-primary">
+                        📁 Choose INTCODE File
+                        <input type="file" id="fileInput" accept=".intcode,*" style="display: none;" />
+                    </label>
+                </div>
+                
+                <div id="status" class="status info">
+                    Load an INTCODE file to begin
+                </div>
+                
+                <button id="runButton" class="btn btn-success" disabled>
+                    ▶️ Run Program
+                </button>
+            </div>
+
+            <div class="output-panel">
+                <h2>Program Output</h2>
+                <pre id="output" class="output-area">Waiting for program execution...</pre>
+            </div>
+        </div>
+
+        <footer>
+            <div class="info-section">
+                <h3>About INTCODE</h3>
+                <p>
+                    INTCODE is the bytecode format used by the BCPL system. BCPL source code is compiled into INTCODE,
+                    which is then executed by a virtual machine interpreter. This web-based VM runs the same INTCODE
+                    that would run on the original BCPL systems from the 1970s.
+                </p>
+                
+                <h4>How to Use:</h4>
+                <ol>
+                    <li>Compile BCPL source to INTCODE (using syni, trni, cgi from bcpl-c64-code-r8)</li>
+                    <li>Load the resulting INTCODE file using the file chooser above</li>
+                    <li>Click "Run Program" to execute</li>
+                    <li>View output in the panel on the right</li>
+                </ol>
+                
+                <h4>Supported Features:</h4>
+                <ul class="feature-list">
+                    <li>✅ Full INTCODE instruction set</li>
+                    <li>✅ System calls (WRITES, WRITEF, WRITEN, etc.)</li>
+                    <li>✅ Arithmetic and logical operations</li>
+                    <li>✅ Function calls and returns</li>
+                    <li>✅ Memory management</li>
+                </ul>
+            </div>
+        </footer>
+    </div>
+
+    <script src="js/intcodeVM.js"></script>
+    <script src="js/intcodeAssembler2.js"></script>
+    <script src="js/intcodeLoader.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
