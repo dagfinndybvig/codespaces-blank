@@ -8,10 +8,10 @@ A clean, straightforward implementation of a BCPL compiler with a clear 3-stage 
 
 1. **SYNI + TRNI** (Syntax Analyzer + Translator)
    - Parses BCPL source code
-   - Converts to intermediate INTCODE representation
+   - Converts to intermediate INTCODE representation (OCODE)
    
 2. **CGI** (Code Generator)
-   - Takes intermediate INTCODE
+   - Takes intermediate INTCODE (OCODE)
    - Produces final executable INTCODE
    
 3. **VM** (Virtual Machine)
