@@ -18,6 +18,7 @@
                 <div>
                      <input type="file" id="fileInput" accept=".b,.txt" style="display: none;" />
                      <button id="uploadBtn">Upload File</button>
+                     <button id="downloadBtn">Download Source</button>
                      <label style="font-size: 0.8em; margin: 0 5px;" title="Convert uploaded code to Uppercase">
                         <input type="checkbox" id="uppercaseChk"> UPCASE
                      </label>
@@ -57,11 +58,25 @@
         const clearBtn = document.getElementById('clearBtn');
         const fileInput = document.getElementById('fileInput');
         const uploadBtn = document.getElementById('uploadBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
         const uppercaseChk = document.getElementById('uppercaseChk');
         const braceChk = document.getElementById('braceChk');
 
         uploadBtn.onclick = () => {
             fileInput.click();
+        };
+
+        downloadBtn.onclick = () => {
+            const content = editor.value;
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'code.b';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
         };
 
         fileInput.onchange = (e) => {
