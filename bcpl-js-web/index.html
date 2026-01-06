@@ -18,6 +18,12 @@
                 <div>
                      <input type="file" id="fileInput" accept=".b,.txt" style="display: none;" />
                      <button id="uploadBtn">Upload File</button>
+                     <label style="font-size: 0.8em; margin: 0 5px;" title="Convert uploaded code to Uppercase">
+                        <input type="checkbox" id="uppercaseChk"> UPCASE
+                     </label>
+                     <label style="font-size: 0.8em; margin: 0 5px;" title="Convert { } to $( $)">
+                        <input type="checkbox" id="braceChk"> { } TO $( $)
+                     </label>
                      <button id="compileBtn">Execute Orders</button>
                 </div>
             </div>
@@ -51,6 +57,8 @@
         const clearBtn = document.getElementById('clearBtn');
         const fileInput = document.getElementById('fileInput');
         const uploadBtn = document.getElementById('uploadBtn');
+        const uppercaseChk = document.getElementById('uppercaseChk');
+        const braceChk = document.getElementById('braceChk');
 
         uploadBtn.onclick = () => {
             fileInput.click();
@@ -62,8 +70,15 @@
 
             const reader = new FileReader();
             reader.onload = (e) => {
-                editor.value = e.target.result;
-                log(`Loaded file: ${file.name}\n`);
+                let content = e.target.result;
+                if (braceChk.checked) {
+                    content = content.replace(/{/g, "$(").replace(/}/g, "$)");
+                }
+                if (uppercaseChk.checked) {
+                    content = content.toUpperCase();
+                }
+                editor.value = content;
+                log(`Loaded file: ${file.name} ${uppercaseChk.checked ? '[UPCASE]' : ''} ${braceChk.checked ? '[BRACES]' : ''}\n`);
             };
             reader.readAsText(file);
         };
